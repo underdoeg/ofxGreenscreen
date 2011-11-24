@@ -1,0 +1,9 @@
+*.swp
+example/bin/example
+example/bin/data/*.xml
+example/bin/data/*.bak
+example/obj/
+*.app
+example/bin/libs/
+*.session
+*~
