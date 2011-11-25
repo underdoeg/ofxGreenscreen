@@ -1,1 +1,7 @@
-color difference keying for openframeworks
+Color difference keying for openframeworks
+
+Based on the method described here
+http://www.blendedplanet.com/?Planet_Blog:Greenscreen_Keying
+
+This addon uses opencv to calculate the color difference of a specific green tone. This has a major advantage over ofxChromaKey (https://github.com/underdoeg/ofxChromaKey) as this method is able to extract shadow information and produces a smoother result.
+The drawback is however it will only work with a well lit greenscreen and is way less error resistant than chroma keying.
