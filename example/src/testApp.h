@@ -26,6 +26,7 @@ public:
 	ofImage mask;
 	ofImage baseMask;
 	ofImage detailMask;
+	ofImage chromaMask;
 
 	ofImage redSub;
 	ofImage greenSub;

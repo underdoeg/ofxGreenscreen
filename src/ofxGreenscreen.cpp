@@ -17,7 +17,13 @@ ofxGreenscreen::ofxGreenscreen():width(0), height(0) {
 	clipBlackEndMask = .1;
 	clipWhiteEndMask = .6;
 
+	clipBlackChromaMask = 0.05;
+	clipWhiteChromaMask = .95;
+
 	strengthGreenSpill = .4;
+	strengthChromaMask = .4;
+
+	doBaseMask = doChromaMask = doDetailMask = doGreenSpill = false;
 }
 
 ofxGreenscreen::~ofxGreenscreen() {
@@ -55,6 +61,9 @@ void ofxGreenscreen::setPixels(ofPixelsRef pixels) {
 }
 
 void ofxGreenscreen::setPixels(unsigned char* pixels, int w, int h) {
+	/*if(w != width || h != height) //doesn't work, don't know why...
+		maskChroma = Mat(height, width, DataType<unsigned char>::type);
+	*/
 	width = w;
 	height = h;
 	input = Mat(height, width, CV_8UC3, pixels);
@@ -83,50 +92,101 @@ void ofxGreenscreen::update() {
 	//split the rgb into individual channels
 	std::vector<Mat> rgbInput;
 	split(input, rgbInput);
+	red = rgbInput[0];
+	green = rgbInput[1];
+	blue = rgbInput[2];
 
 	//subtract the background form each channel and invert the green
-	redSub = rgbInput[0] - bgColor.r;
-	bitwise_not(rgbInput[1], greenSub);
+	redSub = red - bgColor.r;
+	bitwise_not(green, greenSub);
 	greenSub -= 255 - bgColor.g;
-	blueSub = rgbInput[0] - bgColor.b;
+	blueSub = blue - bgColor.b;
+
+	maskChroma = Mat(height, width, DataType<unsigned char>::type);
+	maskChroma = Scalar(255);
 
 	//create the detail mask
-	maskDetail = redSub + greenSub + blueSub;
-	Mat maskDetailSpill = maskDetail;
-	mapImage(maskDetail, maskDetail, clipBlackDetailMask, clipWhiteDetailMask);
-
-	//create the mask green minus red, invert it, darken & erode
-	maskBase = rgbInput[1] - rgbInput[0];
-	bitwise_not(maskBase, maskBase);
-	maskBase -= (1-strengthBaseMask)*255;
-	mapImage(maskBase, maskBase, clipBlackBaseMask, clipWhiteBaseMask);
-	blur(maskBase, maskBase, Size(5, 5));
-	dilate(maskBase, maskBase, Mat());
-	erode(maskBase, maskBase, Mat());
-
-	//create the final mask
-	mask = maskDetail + maskBase;
-	mapImage(mask, mask, clipBlackEndMask, clipWhiteEndMask);
-
-	//REMOVE GREEN SPILL with a multiply filter
-	//blur(maskDetailSpill, maskDetailSpill, Size(5, 5));
-	float opac = strengthGreenSpill;
-	for( int i=0; i<width*height; i++){
-		//rgbInput[1].data[i] = maskDetail.data[i] * (rgbInput[1].data[i])  / 255 ;
-		rgbInput[1].data[i] = (rgbInput[1].data[i] * (1 - opac)) + (rgbInput[1].data[i] * (maskDetailSpill.data[i] / 255) * opac);
-		if(rgbInput[1].data[i]>255)
-			rgbInput[1].data[i] = 255;
-		if(rgbInput[1].data[i]<0)
-			rgbInput[1].data[i] = 0;
+	if(doDetailMask) {
+		maskDetail = redSub + greenSub + blueSub;
+		Mat maskDetailSpill = maskDetail;
+		mapImage(maskDetail, maskDetail, clipBlackDetailMask, clipWhiteDetailMask);
+	} else {
+		maskDetail = Mat(height, width, DataType<unsigned char>::type);
+		maskDetail = Scalar(255);
 	}
 
+	//create the mask green minus red, invert it, darken & erode
+	if(doBaseMask) {
+		maskBase = green - red;
+		bitwise_not(maskBase, maskBase);
+		maskBase -= (1-strengthBaseMask)*255;
+		mapImage(maskBase, maskBase, clipBlackBaseMask, clipWhiteBaseMask);
+		blur(maskBase, maskBase, Size(5, 5));
+		dilate(maskBase, maskBase, Mat());
+		erode(maskBase, maskBase, Mat());
+	} else {
+		maskBase = Mat(height, width, DataType<unsigned char>::type);
+		maskBase = Scalar(255);
+	}
+
+
+	if(doGreenSpill || doChromaMask) {
+		//REMOVE GREEN SPILL with a multiply filter
+		Mat hsvInput;
+		cvtColor(input, hsvInput, CV_RGB2HSV);
+
+		float amount = strengthGreenSpill*4;
+		float hue = ofMap(bgColor.getHue(), 0, 255, 0, 1);
+		for(int y=0; y < height; y++) {
+			for(int x=0; x < width; x++) {
+				float f =  sin( 2 * PI * ( hue + ( .25 - hsvInput.at<Vec3b>(y, x)[0]/180. )));
+				if(doChromaMask) {
+					float fi = f;
+					if(fi>1)
+						fi = 1;
+					if(fi<0)
+						fi = 0;
+					maskChroma.at<unsigned char>(y, x) = fi*255;
+				}
+				if(doGreenSpill) {
+					f = f * amount;
+					if(f<0)
+						f = 0;
+					else if(f>1)
+						f = 1;
+					hsvInput.at<Vec3b>(y, x)[1] *= 1-f;
+				}
+			}
+		}
+
+		//work on the chroma mask
+		bitwise_not(maskChroma, maskChroma);
+		blur(maskChroma, maskChroma, Size(5, 5));
+		maskChroma -= (1-strengthChromaMask)*255;
+		maskChroma *= strengthChromaMask;
+	}
+
+	//create the final mask
+	mask = Mat(height, width, DataType<unsigned char>::type);
+	if(!doDetailMask && !doChromaMask && !doBaseMask) {
+		mask = Scalar(255);
+	} else {
+		mask = Scalar(0);
+		if(doBaseMask)
+			mask += maskBase;
+		if(doDetailMask)
+			mask += maskDetail;
+		if(doChromaMask)
+			mask += maskChroma;
+		mapImage(mask, mask, clipBlackEndMask, clipWhiteEndMask);
+	}
 
 	//MERGE IT ALL
 	Mat composition;
 	std::vector<Mat> rgbaOutput;
-	rgbaOutput.push_back(rgbInput[0]);
-	rgbaOutput.push_back(rgbInput[1]);
-	rgbaOutput.push_back(rgbInput[2]);
+	rgbaOutput.push_back(red);
+	rgbaOutput.push_back(green);
+	rgbaOutput.push_back(blue);
 	rgbaOutput.push_back(mask);
 	merge(rgbaOutput, composition);
 
@@ -173,36 +233,35 @@ ofColor ofxGreenscreen::getBgColor() {
 	return bgColor;
 }
 
-ofPixels matToPixRef(Mat* m) {
+ofPixels matToOfPixels(Mat* m) {
 	ofPixels ret;
-	ofImageType type = OF_IMAGE_GRAYSCALE;
-	if(m->channels() == 3)
-		type = OF_IMAGE_COLOR;
-	//ret.allocate(m->size[0], m->size[1], channel);
-	ret.setFromPixels(m->data, m->size[1], m->size[0], type);
+	ret.setFromExternalPixels(m->data, m->size[1], m->size[0], m->channels());
 	return ret;
 }
 
 ofPixels ofxGreenscreen::getBaseMask() {
-	return matToPixRef(&maskBase);
+	return matToOfPixels(&maskBase);
 }
 
 ofPixels ofxGreenscreen::getBlueSub() {
-	return matToPixRef(&blueSub);
+	return matToOfPixels(&blueSub);
 }
 
 ofPixels ofxGreenscreen::getDetailMask() {
-	return matToPixRef(&maskDetail);
+	return matToOfPixels(&maskDetail);
 }
 
 ofPixels ofxGreenscreen::getGreenSub() {
-	return matToPixRef(&greenSub);
+	return matToOfPixels(&greenSub);
 }
 
 ofPixels ofxGreenscreen::getMask() {
-	return matToPixRef(&mask);
+	return matToOfPixels(&mask);
 }
 
 ofPixels ofxGreenscreen::getRedSub() {
-	return matToPixRef(&redSub);
+	return matToOfPixels(&redSub);
+}
+ofPixels ofxGreenscreen::getChromaMask() {
+	return matToOfPixels(&maskChroma);
 }

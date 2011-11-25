@@ -22,6 +22,7 @@ public:
 
 	ofPixels getBaseMask();
 	ofPixels getDetailMask();
+	ofPixels getChromaMask();
 	ofPixels getMask();
 
 	ofPixels getRedSub();
@@ -32,8 +33,16 @@ public:
 	float clipBlackBaseMask, clipWhiteBaseMask;
 	float clipBlackDetailMask, clipWhiteDetailMask;
 	float clipBlackEndMask, clipWhiteEndMask;
+	float clipBlackChromaMask, clipWhiteChromaMask;
 	float strengthBaseMask;
+	float strengthChromaMask;
 	float strengthGreenSpill;
+
+	//enable masks and steps
+	bool doBaseMask;
+	bool doDetailMask;
+	bool doChromaMask;
+	bool doGreenSpill;
 
 private:
 	void update();
@@ -47,6 +56,10 @@ private:
 	cv::Mat mask;
 	cv::Mat maskDetail;
 	cv::Mat maskBase;
+	cv::Mat maskChroma;
+	cv::Mat red;
+	cv::Mat green;
+	cv::Mat blue;
 	cv::Mat redSub;
 	cv::Mat greenSub;
 	cv::Mat blueSub;

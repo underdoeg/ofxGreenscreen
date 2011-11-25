@@ -1,9 +1,11 @@
 #include "testApp.h"
+
 #define USE_GUI
 
 #ifdef USE_GUI
 #include "ofxSimpleGuiToo.h"
 float bgColor[4];
+bool saveImgs;
 #endif
 
 //--------------------------------------------------------------
@@ -12,8 +14,15 @@ void testApp::setup() {
 
 #ifdef USE_GUI
 	//gui.addTitle("SETTINGS");
+	gui.addToggle("detail mask", greenscreen.doDetailMask);
+	gui.addToggle("base mask", greenscreen.doBaseMask);
+	gui.addToggle("chroma mask", greenscreen.doChromaMask);
+	gui.addToggle("greenspill", greenscreen.doGreenSpill);
+
+
 	gui.addColorPicker("key color", bgColor);
 	gui.addSlider("base mask strength", greenscreen.strengthBaseMask, 0.0, 1.f);
+	gui.addSlider("chroma mask strength", greenscreen.strengthChromaMask, 0.0, 1.f);
 	gui.addSlider("green spill strength", greenscreen.strengthGreenSpill, 0.0, 1.f);
 
 
@@ -22,14 +31,16 @@ void testApp::setup() {
 	gui.addSlider("base mask white", greenscreen.clipWhiteBaseMask, 0.0, 1.f);
 	gui.addSlider("detail mask black", greenscreen.clipBlackDetailMask, 0.0, 1.f);
 	gui.addSlider("detail mask white", greenscreen.clipWhiteDetailMask, 0.0, 1.f);
-	gui.addSlider("end mask black", greenscreen.clipBlackDetailMask, 0.0, 1.f);
-	gui.addSlider("end mask white", greenscreen.clipWhiteDetailMask, 0.0, 1.f);
+	gui.addSlider("end mask black", greenscreen.clipBlackEndMask, 0.0, 1.f);
+	gui.addSlider("end mask white", greenscreen.clipWhiteEndMask, 0.0, 1.f);
 
 	//gui.addTitle("OUTPUT");
 	gui.addFPSCounter();
+	gui.addButton("save images", saveImgs);
 	gui.addContent("camera", grabber);
 	gui.addContent("base mask", baseMask);
 	gui.addContent("detail mask", detailMask);
+	gui.addContent("chroma mask", chromaMask);
 	gui.addContent("mask", mask);
 
 	gui.addContent("red sub", redSub);
@@ -47,16 +58,30 @@ void testApp::update() {
 	if(grabber.isFrameNew())
 		greenscreen.setPixels(grabber.getPixelsRef());
 #ifdef USE_GUI
-	if(gui.isOn()){
+	if(gui.isOn()) {
 		greenscreen.setBgColor(ofColor(bgColor[0]*255, bgColor[1]*255, bgColor[2]*255));
+		if(grabber.isFrameNew()) {
+			//THIS PART IS REALLY SLOW!!!
+			mask.setFromPixels(greenscreen.getMask());
+			detailMask.setFromPixels(greenscreen.getDetailMask());
+			baseMask.setFromPixels(greenscreen.getBaseMask());
+			chromaMask.setFromPixels(greenscreen.getChromaMask());
 
-		//THIS PART IS REALLY SLOW!!!
-		mask.setFromPixels(greenscreen.getMask());
-		detailMask.setFromPixels(greenscreen.getDetailMask());
-		baseMask.setFromPixels(greenscreen.getBaseMask());
-		redSub.setFromPixels(greenscreen.getRedSub());
-		greenSub.setFromPixels(greenscreen.getGreenSub());
-		blueSub.setFromPixels(greenscreen.getBlueSub());
+			redSub.setFromPixels(greenscreen.getRedSub());
+			greenSub.setFromPixels(greenscreen.getGreenSub());
+			blueSub.setFromPixels(greenscreen.getBlueSub());
+		}
+
+		if(saveImgs){
+			mask.saveImage("save/mask.jpg");
+			detailMask.saveImage("save/detailMask.jpg");
+			baseMask.saveImage("save/baseMask.png");
+			redSub.saveImage("save/redSub.png");
+			greenSub.saveImage("save/greenSub.png");
+			blueSub.saveImage("save/blueSub.png");
+			greenscreen.saveImage("save/composition.png");
+			saveImgs = false;
+		}
 	}
 #endif
 }
@@ -67,11 +92,9 @@ void testApp::draw() {
 	greenscreen.draw(0, 0, greenscreen.getWidth(), greenscreen.getHeight());
 	//grabber.draw(0, 0, 214, 160);
 	greenscreen.drawBgColor();
+	ofSetColor(0);
+	ofDrawBitmapString("FPS "+ofToString(ofGetFrameRate()), 5, greenscreen.getHeight()+20);
 #ifdef USE_GUI
-	if(!gui.isOn()){
-		ofSetColor(0);
-		ofDrawBitmapString("FPS "+ofToString(ofGetFrameRate()), 5, greenscreen.getHeight()+20);
-	}
 	gui.draw();
 #endif
 }
