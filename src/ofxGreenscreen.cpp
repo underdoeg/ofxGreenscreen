@@ -23,7 +23,7 @@ ofxGreenscreen::ofxGreenscreen():width(0), height(0) {
 	strengthGreenSpill = .4;
 	strengthChromaMask = .4;
 
-	doBaseMask = doChromaMask = doDetailMask = doGreenSpill = false;
+	doBaseMask = doChromaMask = doDetailMask = doGreenSpill = true;
 }
 
 ofxGreenscreen::~ofxGreenscreen() {
@@ -64,9 +64,17 @@ void ofxGreenscreen::setPixels(unsigned char* pixels, int w, int h) {
 	/*if(w != width || h != height) //doesn't work, don't know why...
 		maskChroma = Mat(height, width, DataType<unsigned char>::type);
 	*/
-	width = w;
-	height = h;
-	input = Mat(height, width, CV_8UC3, pixels);
+	width = w-cropLeft*w-cropRight*w;
+	height = h-cropTop*h-cropBottom*h;
+	input = Mat(h, w, CV_8UC3, pixels);
+	if(cropBottom != 0 || cropTop != 0 || cropLeft != 0 || cropRight != 0) {
+		cv::Rect rect;
+		rect.x      = cropLeft*w;
+		rect.y      = cropTop*h;
+		rect.width  = w-cropRight*w-rect.x;
+		rect.height = h-cropBottom*h-rect.y;
+		input = input(rect);
+	}
 	update();
 }
 
@@ -121,7 +129,7 @@ void ofxGreenscreen::update() {
 		bitwise_not(maskBase, maskBase);
 		maskBase -= (1-strengthBaseMask)*255;
 		mapImage(maskBase, maskBase, clipBlackBaseMask, clipWhiteBaseMask);
-		blur(maskBase, maskBase, Size(5, 5));
+		blur(maskBase, maskBase, cv::Size(5, 5));
 		dilate(maskBase, maskBase, Mat());
 		erode(maskBase, maskBase, Mat());
 	} else {
@@ -161,7 +169,7 @@ void ofxGreenscreen::update() {
 
 		//work on the chroma mask
 		bitwise_not(maskChroma, maskChroma);
-		blur(maskChroma, maskChroma, Size(5, 5));
+		blur(maskChroma, maskChroma, cv::Size(5, 5));
 		maskChroma -= (1-strengthChromaMask)*255;
 		maskChroma *= strengthChromaMask;
 	}
@@ -265,3 +273,14 @@ ofPixels ofxGreenscreen::getRedSub() {
 ofPixels ofxGreenscreen::getChromaMask() {
 	return matToOfPixels(&maskChroma);
 }
+
+void ofxGreenscreen::setCropLeft(float val)
+{
+	cropLeft = val;
+}
+
+void ofxGreenscreen::setCropRight(float val)
+{
+	cropRight = val;
+}
+

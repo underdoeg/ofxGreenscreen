@@ -38,6 +38,15 @@ public:
 	float strengthChromaMask;
 	float strengthGreenSpill;
 
+	void setCropLeft(float val);
+	void setCropRight(float val);
+
+	//values from 0 - 1
+	float cropTop;
+	float cropBottom;
+	float cropLeft;
+	float cropRight;
+
 	//enable masks and steps
 	bool doBaseMask;
 	bool doDetailMask;

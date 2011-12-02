@@ -10,8 +10,9 @@ bool saveImgs;
 
 //--------------------------------------------------------------
 void testApp::setup() {
-	grabber.initGrabber(1280, 960);
-
+	grabber.initGrabber(640, 480);
+	greenscreen.cropLeft = .4;
+	greenscreen.cropRight = .4;
 #ifdef USE_GUI
 	//gui.addTitle("SETTINGS");
 	gui.addToggle("detail mask", greenscreen.doDetailMask);
