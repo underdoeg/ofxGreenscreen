@@ -236,7 +236,7 @@ void ofxGreenscreen::draw(int x, int y, int w, int h, bool checkers) {
 	if(checkers)
 		drawCheckers(x, y, w, h);
 	ofSetColor(255);
-	ofImage::draw(x, y, w, h);
+	ofImage::draw(x+cropLeft*w, y+cropTop*h, w-cropLeft*w-cropRight*w, h-cropTop*h-cropBottom*h);
 }
 
 ofColor ofxGreenscreen::getBgColor() {
