@@ -23,6 +23,8 @@ ofxGreenscreen::ofxGreenscreen():width(0), height(0) {
 	strengthGreenSpill = .4;
 	strengthChromaMask = .4;
 
+	cropBottom = cropLeft = cropRight = cropTop = 0;
+
 	doBaseMask = doChromaMask = doDetailMask = doGreenSpill = true;
 }
 
