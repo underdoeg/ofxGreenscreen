@@ -5,3 +5,6 @@ http://www.blendedplanet.com/?Planet_Blog:Greenscreen_Keying
 
 This addon uses opencv to calculate the color difference of a specific green tone. This has a major advantage over ofxChromaKey (https://github.com/underdoeg/ofxChromaKey) as this method is able to extract shadow information and produces a smoother result.
 The drawback is however it will only work with a well lit greenscreen and is way less error resistant than chroma keying.
+
+The result looks something like this (taken with a really crappy green background)
+https://github.com/underdoeg/ofxGreenscreen/blob/9b153daf18aea40de72e06569703ffdd158fe7a1/example/bin/data/save/composition2.png
