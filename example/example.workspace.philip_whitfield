@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Workspace>
+  <WorkspaceParserPaths>
+    <Include Path="/home/phwhitfield/programming/openFrameworks/addons/ofxOpenCv/libs/opencv/include"/>
+  </WorkspaceParserPaths>
+</Workspace>

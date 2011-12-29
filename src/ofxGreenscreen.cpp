@@ -169,6 +169,14 @@ void ofxGreenscreen::update() {
 			}
 		}
 
+		if(doGreenSpill) {
+			cvtColor(hsvInput, input, CV_HSV2RGB);
+			split(input, rgbInput);
+			red = rgbInput[0];
+			green = rgbInput[1];
+			blue = rgbInput[2];
+		}
+
 		//work on the chroma mask
 		bitwise_not(maskChroma, maskChroma);
 		blur(maskChroma, maskChroma, cv::Size(5, 5));
@@ -276,13 +284,10 @@ ofPixels ofxGreenscreen::getChromaMask() {
 	return matToOfPixels(&maskChroma);
 }
 
-void ofxGreenscreen::setCropLeft(float val)
-{
+void ofxGreenscreen::setCropLeft(float val) {
 	cropLeft = val;
 }
 
-void ofxGreenscreen::setCropRight(float val)
-{
+void ofxGreenscreen::setCropRight(float val) {
 	cropRight = val;
 }
-
