@@ -16,7 +16,7 @@ public:
 	void setBgColor(ofColor col);
 	ofColor getBgColor();
 	void drawBgColor(int x=0, int y=0, int w=10, int h=10);
-	void draw(int x, int y, int w, int h, bool checkers=true);
+	void draw(int x, int y, int w, int h, bool checkers=false);
 	void learnBgColor(ofPixelsRef pixels);
 	void learnBgColor(ofPixelsRef pixels, int x, int y, int w, int h);
 
